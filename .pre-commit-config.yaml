@@ -14,7 +14,7 @@ repos:
    rev: v1.18.2
    hooks:
      - id: mypy
-       additional_dependencies: [pydantic, pandas]
+       additional_dependencies: [pydantic, pandas, pandas-stubs]
        args: [--config-file=pyproject.toml, --strict]
  - repo: https://github.com/PyCQA/docformatter
    rev: v1.7.7
