@@ -1,0 +1,97 @@
+# Core project metadata (PEP 621). Defines package info for UV, pip, PyPI, GitHub Packages.
+[project]
+name = "titanic-classification"
+version = "0.1.0"
+description = "Python Project for classification of Titanic survival"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 3 - Alpha",
+]
+dependencies = [
+    "python-dotenv",
+    "pydantic",
+    "pydantic-settings",
+    "pandas",
+    "pandas-stubs",
+    "pyreadr",
+    "pyarrow",
+    "openpyxl",
+    "numpy",
+    "pytz",
+    "pre-commit",
+]
+
+[project.optional-dependencies]
+build = ["build", "twine"]
+dev = ["ipykernel", "jupyter", "nbdime", "tqdm"]
+test = ["mypy==1.8.0", "pylint", "ruff==0.1.13", "pytest", "pytest-cov", "pytest-mock"]
+
+#[project.scripts]
+#download_data = "scripts.download_data"
+
+[project.urls]
+"Homepage" = "https://github.com/your-username/titanic-classification"
+"Repository" = "https://github.com/your-username/titanic-classification"
+"Issues" = "https://github.com/your-username/titanic-classification/issues"
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/titanic_classification/__init__.py"
+
+[tool.uv]
+package = true
+
+# Mypy config for strict type checking
+[tool.mypy]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_equality = true
+extra_checks = true
+check_untyped_defs = true
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+no_implicit_reexport = true
+warn_return_any = true
+
+# Pylint config
+[tool.pylint.messages_control]
+disable = [
+    "import-error",
+    "logging-fstring-interpolation",
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+]
+max-line-length = 120
+fail-under = 9.0
+
+# Ruff config for linting/formatting
+[tool.ruff]
+line-length = 120
+exclude = ["notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "D", "F", "UP", "SIM", "I"]
+ignore = [
+    "D100", "D101", "D102", "D103", "D104", "D106",
+    "D401",
+]
+[tool.ruff.lint.isort]
+known-first-party = ["titanic_classification"]
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[dependency-groups]
+test = [
+    "docformatter>=1.7.7",
+]
