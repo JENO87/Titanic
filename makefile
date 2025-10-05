@@ -1,4 +1,4 @@
-.PHONY: install-uv sync install test lint format-check build export docker-build pre-commit clean
+.PHONY: install-uv sync install test lint format-check type-check scan-deps build export docker-build tag-docker pre-commit publish clean-docker editable-install clean
 
 install-uv:
 	pip install uv
@@ -20,14 +20,12 @@ lint:
 	uv run mypy .
 	uv run pylint src/
 
-format-check:
-	uv run ruff format --diff .
+   format-check:
+       uv run pre-commit run ruff-format --all-files
+       uv run ruff format --diff .
 
 type-check:
 	uv run mypy .
-
-install-trivy:
-	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/scripts/install.sh | sh -s -- -b /usr/local/bin
 
 scan-deps:
 	trivy fs --format json --output trivy-report.json requirements.txt
