@@ -9,6 +9,7 @@ sync:
 install:
 	make install-uv
 	make sync
+	make editable-install
 	uv run pre-commit install
 
 test:

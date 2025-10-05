@@ -50,6 +50,9 @@ package = true
 
 # Mypy config for strict type checking
 [tool.mypy]
+python_version = "3.13"
+strict = true
+mypy_path = "src"
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -89,6 +92,11 @@ ignore = [
 known-first-party = ["titanic_classification"]
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+addopts = "--cov=titanic_classification --cov-report=xml"
 
 [dependency-groups]
 test = [

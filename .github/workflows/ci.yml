@@ -2,31 +2,30 @@ name: Github Actions CI/CD Pipeline
 
 on:
   push:
-    branches: [main, stage, development]
+    branches: [main, development]
   pull_request:
-    branches: [main, stage, development]
+    branches: [main, development]
 
 env:
   RUNNER: ubuntu-latest
   CHECKOUT_ACTION: actions/checkout@v4
   UPLOAD_ARTIFACT: actions/upload-artifact@v4
-  DOWNLOAD_ARTIFACT: actions/download-artifact@v4
 
 jobs:
   install-dependencies:
-    runs-on: $RUNNER
+    runs-on: ${{ env.RUNNER }}
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
         run: make sync
 
-  linting:
-    runs-on: $RUNNER
+  run-linters:
+    runs-on: ${{ env.RUNNER }}
     needs: [install-dependencies]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
@@ -37,10 +36,10 @@ jobs:
         run: make lint
 
   check-formatting:
-    runs-on: $RUNNER
+    runs-on: ${{ env.RUNNER }}
     needs: [install-dependencies]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
@@ -48,11 +47,11 @@ jobs:
       - name: Check formatting
         run: make format-check
 
-  type-checking:
-    runs-on: $RUNNER
+  run-type-checking:
+    runs-on: ${{ env.RUNNER }}
     needs: [install-dependencies]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
@@ -60,11 +59,11 @@ jobs:
       - name: Run type checking
         run: make type-check
 
-  unit-tests:
-    runs-on: $RUNNER
+  run-unit-tests:
+    runs-on: ${{ env.RUNNER }}
     needs: [install-dependencies]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
@@ -72,47 +71,30 @@ jobs:
       - name: Run unit tests
         run: make test
 
-  coverage-report:
-    runs-on: $RUNNER
-    needs: [ install-dependencies ]
+  generate-coverage-report:
+    runs-on: ${{ env.RUNNER }}
+    needs: [install-dependencies]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
         run: make sync
       - name: Generate coverage report
         run: make test
-      - name: Archive coverage report
-        uses: $UPLOAD_ARTIFACT
-        with:
-          name: coverage-report
-          path: coverage.xml
-
-  artifact-upload:
-    runs-on: $RUNNER
-    needs: [ install-dependencies ]
-    steps:
-      - uses: $CHECKOUT_ACTION
-      - name: Install UV
-        run: make install-uv
-      - name: Sync dependencies
-        run: make sync
-      - name: Generate coverage report
-        run: make test
-      - name: Upload artifacts
-        uses: $UPLOAD_ARTIFACT
+      - name: Upload coverage report
+        uses: ${{ env.UPLOAD_ARTIFACT }}
         with:
           name: test-artifacts
           path: |
             coverage.xml
             report.xml
 
-  security-scan:
-    runs-on: $RUNNER
-    needs: [ install-dependencies ]
+  run-security-scan:
+    runs-on: ${{ env.RUNNER }}
+    needs: [install-dependencies]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
@@ -124,16 +106,16 @@ jobs:
       - name: Scan dependencies
         run: make scan-deps
       - name: Upload scan report
-        uses: $UPLOAD_ARTIFACT
+        uses: ${{ env.UPLOAD_ARTIFACT }}
         with:
           name: trivy-report
           path: trivy-report.json
 
   build-package:
-    runs-on: $RUNNER
-    needs: [ install-dependencies, linting, check-formatting, type-checking, unit-tests ]
+    runs-on: ${{ env.RUNNER }}
+    needs: [install-dependencies, run-linters, check-formatting, run-type-checking, run-unit-tests]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
@@ -141,16 +123,16 @@ jobs:
       - name: Build package
         run: make build
       - name: Upload artifacts
-        uses: $UPLOAD_ARTIFACT
+        uses: ${{ env.UPLOAD_ARTIFACT }}
         with:
           name: package
           path: dist/*
 
   export-requirements:
-    runs-on: $RUNNER
+    runs-on: ${{ env.RUNNER }}
     needs: [build-package]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
@@ -158,80 +140,105 @@ jobs:
       - name: Export requirements
         run: make export
       - name: Upload requirements
-        uses: $UPLOAD_ARTIFACT
+        uses: ${{ env.UPLOAD_ARTIFACT }}
         with:
           name: requirements
           path: requirements.txt
 
   publish-package:
-    runs-on: $RUNNER
-    needs: [ build-package ]
+    runs-on: ${{ env.RUNNER }}
+    needs: [build-package]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
         run: make sync
       - name: Download artifacts
-        uses: $DOWNLOAD_ARTIFACT
+        uses: actions/download-artifact@v4
         with:
           name: package
           path: dist/
       - name: Publish to GitHub Packages
         run: make publish
         env:
-          UV_PUBLISH_TOKEN: $secrets.GITHUB_TOKEN
+          UV_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-docker-image:
-    runs-on: $RUNNER
-    needs: [ build-package, export-requirements ]
+  build-docker:
+    runs-on: ${{ env.RUNNER }}
+    needs: [build-package, export-requirements]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Install UV
         run: make install-uv
       - name: Sync dependencies
         run: make sync
       - name: Download requirements
-        uses: $DOWNLOAD_ARTIFACT
+        uses: actions/download-artifact@v4
         with:
           name: requirements
           path: .
       - name: Build Docker image
-        run: make build-docker-image
-
-  tag-docker-image:
-    runs-on: $RUNNER
-    needs: [ build-docker-image ]
-    steps:
-      - uses: $CHECKOUT_ACTION
-      - name: Tag Docker image
-        run: make tag-docker-image
+        run: make docker-build
         env:
-          TAG: $github.sha
+          DOCKER_TAG: ${{ github.sha }}
 
-  push-docker-image:
-    runs-on: $RUNNER
-    needs: [ tag-docker-image ]
+  tag-docker:
+    runs-on: ${{ env.RUNNER }}
+    needs: [build-docker]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
+      - name: Tag Docker image
+        run: make tag-docker
+        env:
+          TAG: ${{ github.sha }}
+
+  push-docker:
+    runs-on: ${{ env.RUNNER }}
+    needs: [tag-docker]
+    steps:
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: $github.actor
-          password: $secrets.GITHUB_TOKEN
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Docker image
-        run: make push-docker-image
+        run: make push-docker
         env:
-          TAG: $github.sha
+          TAG: ${{ github.sha }}
 
   clean-after-push:
-    runs-on: $RUNNER
-    needs: [ push-docker-image ]
+    runs-on: ${{ env.RUNNER }}
+    needs: [push-docker]
     steps:
-      - uses: $CHECKOUT_ACTION
+      - uses: ${{ env.CHECKOUT_ACTION }}
       - name: Clean Docker images
-        run: make clean-docker-image
+        run: make clean-docker
         env:
-          TAG: $github.sha
+          TAG: ${{ github.sha }}
+
+  notify:
+    runs-on: ${{ env.RUNNER }}
+    needs: [install-dependencies, run-linters, check-formatting, run-type-checking, run-unit-tests, generate-coverage-report, run-security-scan, build-package, export-requirements, publish-package, push-docker, clean-after-push]
+    if: always()
+    steps:
+      - uses: ${{ env.CHECKOUT_ACTION }}
+      - name: Install GitHub CLI
+        run: |
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
+      - name: Notify via issue comment
+        run: make notify
+        env:
+          STATUS: ${{ job.status }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
