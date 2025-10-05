@@ -14,6 +14,6 @@ LOG_DATE = datetime.now().strftime("%Y-%m-%d")
 LOG_PREFIX = f"{PROJECT_NAME}_{LOG_DATE}"
 LOG_PATH = Path("logs")
 
-#logger.project_name = PROJECT_NAME
-#logger.file_directory = str(LOG_PATH)
-#logger.file_prefix = LOG_PREFIX
+# logger.project_name = PROJECT_NAME
+# logger.file_directory = str(LOG_PATH)
+# logger.file_prefix = LOG_PREFIX
