@@ -1,15 +1,18 @@
 name: CI/CD Pipeline
 
 on:
-   push:
-     branches: [quality, main]
-   workflow_dispatch:
-     inputs:
-       branch:
-         description: 'Branch to run pipeline on (e.g., development)'
-         required: true
-         type: string
-         default: development
+  push:
+    branches: [development]  # Add development for lightweight runs
+  pull_request:
+    branches: [quality, main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment (development, quality, main)'
+        required: true
+        type: choice
+        options: [development, quality, main]
+        default: development
 
   #push:
   #  branches: [main, development]
@@ -112,7 +115,8 @@ jobs:
   build-package:
     name: Build Package
     runs-on: ubuntu-latest
-    needs: [install-dependencies, run-linters, check-formatting, run-type-checking, run-unit-tests]
+    needs: [ install-dependencies, run-linters, check-formatting, run-type-checking, run-unit-tests ]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref_name == 'quality' || github.ref_name == 'main'))
     steps:
       - *checkout
       - *install-uv
@@ -133,6 +137,7 @@ jobs:
     name: Export Requirements
     runs-on: ubuntu-latest
     needs: [build-package]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref_name == 'quality' || github.ref_name == 'main'))
     steps:
       - *checkout
       - *install-uv
@@ -149,7 +154,7 @@ jobs:
     name: Publish Package
     runs-on: ubuntu-latest
     needs: [ build-package ]
-    if: github.ref_name == 'quality' || github.ref_name == 'main'
+    if: github.event_name == 'push' && (github.ref_name == 'quality' || github.ref_name == 'main')
     steps:
       - *checkout
       - *install-uv
@@ -168,6 +173,7 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [ build-package, export-requirements ]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref_name == 'quality' || github.ref_name == 'main'))
     steps:
       - *checkout
       - *install-uv
@@ -186,6 +192,7 @@ jobs:
     name: Tag Docker Image
     runs-on: ubuntu-latest
     needs: [ build-docker-image ]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref_name == 'quality' || github.ref_name == 'main'))
     steps:
       - *checkout
       - name: Tag Docker image
@@ -197,7 +204,7 @@ jobs:
     name: Push Docker Image
     runs-on: ubuntu-latest
     needs: [ tag-docker-image ]
-    if: github.ref_name == 'quality' || github.ref_name == 'main'
+    if: github.event_name == 'push' && (github.ref_name == 'quality' || github.ref_name == 'main')
     steps:
       - *checkout
       - name: Login to GHCR
@@ -215,7 +222,7 @@ jobs:
     name: Clean Docker Images
     runs-on: ubuntu-latest
     needs: [ push-docker-image ]
-    if: github.ref_name == 'quality' || github.ref_name == 'main'
+    if: github.event_name == 'push' && (github.ref_name == 'quality' || github.ref_name == 'main')
     steps:
       - *checkout
       - name: Clean Docker images
