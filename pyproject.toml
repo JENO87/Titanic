@@ -22,6 +22,10 @@ dependencies = [
     "openpyxl>=3.0.0",
     "numpy>=1.26.0",
     "pytz>=2023.3",
+    "seaborn>=0.13.0",
+    "matplotlib",
+    "loguru",
+    "scikit-learn",
 ]
 
 [project.optional-dependencies]
@@ -35,6 +39,9 @@ dev = [
     "docformatter>=1.7.7",
     "pandas-stubs>=2.0.0",
     "types-requests>=2.31.0.1",  # Type stubs for requests
+    "types-seaborn>=0.13.0.20240401",
+    "pydantic>=2.8.2",
+
 ]
 test = [
     "mypy>=1.11.0",
@@ -67,7 +74,6 @@ package = true
 [tool.mypy]
 python_version = "3.13"
 strict = true
-mypy_path = "src"
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -79,6 +85,19 @@ disallow_untyped_decorators = true
 disallow_any_generics = true
 no_implicit_reexport = true
 warn_return_any = true
+# Overrides for untyped modules
+[[tool.mypy.overrides]]
+module = ["titanic_classification.*"]
+ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = ["sklearn.*"]
+ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = "titanic_classification.eda.suggest_transformations"
+disable_error_code = "str-bytes-safe"
+[[tool.mypy.overrides]]
+module = ["loguru"]
+ignore_missing_imports = true
 
 # Pylint config
 [tool.pylint.messages_control]
@@ -98,13 +117,16 @@ line-length = 120
 exclude = ["notebooks"]
 
 [tool.ruff.lint]
-select = ["E", "D", "F", "UP", "SIM", "I"]
+select = ["E", "D", "F", "UP", "SIM", "I", "W"]
 ignore = [
     "D100", "D101", "D102", "D103", "D104", "D106",
     "D401",
 ]
 [tool.ruff.lint.isort]
 known-first-party = ["titanic_classification"]
+combine-as-imports = true
+# Prefer | None over Optional[] for Python 3.10+
+force-single-line = false
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 

@@ -1,5 +1,8 @@
 .PHONY: install-uv sync install test lint format-check type-check scan-deps build-package publish-package export build-docker-image tag-docker-image push-docker-image clean-docker-image pre-commit clean editable-install ci
 
+# Variables
+SRC = src
+
 help:
 	@powershell -Command "Get-Content Makefile | Select-String '^[a-zA-Z0-9_-]+:' | ForEach-Object { $$_.Line.Split(':')[0] } | Sort-Object | ForEach-Object { Write-Output $$_ }"
 
@@ -14,7 +17,6 @@ run-debug:
 
 sync:
 	@uv sync --all-extras
-	@powershell -Command "if ($LASTEXITCODE -ne 0) { Write-Output 'Error: uv sync failed'; exit 1 }"
 
 install:
 	@make install-uv
@@ -30,13 +32,17 @@ lint:
 	uv run ruff check . --fix
 	uv run mypy .
 	uv run pylint src/
+	uv run pylint scripts/
 
 format-check:
 	uv run pre-commit run ruff-format --all-files
 	uv run ruff format --diff .
 
 type-check:
-	uv run mypy .
+	uv run mypy ."
+
+mypy-paths:
+	uv run mypy --python-path . scripts
 
 scan-deps:
 	trivy fs --format json --output trivy-report.json requirements.txt
@@ -85,5 +91,12 @@ pr-main:
 install-gh:
 	powershell -Command "Invoke-WebRequest -Uri 'https://github.com/cli/cli/releases/download/v2.81.0/gh_2.81.0_windows_amd64.zip' -OutFile 'gh.zip'; Expand-Archive -Path 'gh.zip' -DestinationPath '.' -Force; if (Test-Path 'gh_2.81.0_windows_amd64\gh.exe') { Move-Item -Path 'gh_2.81.0_windows_amd64\gh.exe' -Destination '.\gh.exe' -Force }; Remove-Item -Path 'gh.zip' -Force; if (Test-Path 'gh_2.81.0_windows_amd64') { Remove-Item -Path 'gh_2.81.0_windows_amd64' -Recurse -Force }"
 
+# All targets below are for running scripts
 setup-branch-protection:
-	@uv run scripts/setup-branch-protection.py
+	@powershell -Command "$env:PYTHONPATH='$(SRC)'; uv run python -m scripts/setup_branch_protection.py"
+
+eda:
+	@uv run python -m scripts/eda.py"
+
+preprocess:
+	@uv run scripts/preprocess.py"
